@@ -1,0 +1,15 @@
+{
+    "name": "qiuqiux/base-convert",
+    "description": "Converted from Binary,Octal,Decimal,Hexadecimal,Base62 and etc",
+    "keywords": ["baseConvert", "base62"],
+    "require": {
+
+    },
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "QiuQiuX\\BaseConvert\\": "src/"
+        }
+    }
+}
