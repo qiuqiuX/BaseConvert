@@ -2,58 +2,69 @@
 
 namespace QiuQiuX\BaseConvert;
 
-use InvalidArgumentException;
-
 class BaseConvert
 {
     const BASE62CODE = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
     protected $baseNumber;
     protected $baseFormat;
+    protected $baseCode;
+    protected $isBaseNumberFromBaseCode;
 
-    public function __construct($baseNumber, $baseFormat = 10)
+    public function __construct($baseNumber, $baseFormat = 10, $baseCode = '', $isBaseNumberFromBaseCode = true)
     {
-        if ($baseFormat > strlen(self::BASE62CODE) || $baseFormat < 2) {
-            throw new InvalidArgumentException("Invalid argument {$baseFormat} given");
-        }
         $this->baseNumber = $baseNumber;
         $this->baseFormat = $baseFormat;
+        $this->baseCode = $baseCode ? : self::BASE62CODE;
+        $this->isBaseNumberFromBaseCode = $isBaseNumberFromBaseCode;
     }
 
     public function convertTo($targetFormat)
     {
-        return static::convert($this->baseNumber, $this->baseFormat, $targetFormat);
+        return static::convert($this->baseNumber, $this->baseFormat, $targetFormat, $this->baseCode, $this->isBaseNumberFromBaseCode);
     }
 
 
-    public static function convert($source, $sourceBase, $targetBase)
+    public static function convert($baseNumber, $baseFormat, $targetFormat, $baseCode = '', $isBaseNumberFromBaseCode = true)
     {
-        if ($sourceBase == $targetBase) {
-            return $source;
+        $baseCode = $baseCode ? : self::BASE62CODE;
+        $baseCodeLen = strlen($baseCode);
+
+        if ($baseFormat > $baseCodeLen || $baseFormat < 2 || $targetFormat > $baseCodeLen || $targetFormat < 2) {
+            throw new InvalidBaseConvertException("Invalid argument format given");
         }
 
-        $source = strval($source);
+        $baseNumber = strval($baseNumber);
 
-        if (function_exists('gmp_init')) {
-            return gmp_strval(gmp_init($source, $sourceBase), $targetBase);
-        } else {
-            $sourceHashCode = substr(self::BASE62CODE, 0, $sourceBase);
-            $result = 0;
-            while($length = strlen($source)) {
-                $result += strpos($sourceHashCode, $source{0}) * pow($sourceBase, $length - 1);
-                $source = substr($source, 1);
-            }
+        $result = self::format2Decimal($baseNumber, $baseFormat, $baseCode, $isBaseNumberFromBaseCode);
 
-            $targetHashCode = substr(self::BASE62CODE, 0, $targetBase);
-            $hash = '';
-            do {
-                $tmp = $result % $targetBase;
-                $result = intval($result /$targetBase);
-                $hash = $targetHashCode{$tmp} . $hash;
-            } while($result > 0);
+        return self::decimal2XFormat($result, $targetFormat, $baseCode);
+    }
 
-            return $hash;
+    public static function decimal2XFormat($number, $targetFormat, $baseCode)
+    {
+        $hash = '';
+        do {
+            $tmp = $number % $targetFormat;
+            $number = intval($number /$targetFormat);
+            $hash = $baseCode{$tmp} . $hash;
+        } while($number > 0);
+
+        return $hash;
+    }
+
+    public static function format2Decimal($baseNumber, $baseFormat, $baseCode, $isBaseNumberFromBaseCode)
+    {
+        $length = strlen($baseNumber);
+        $result = 0;
+        $offset = 0;
+        $baseCode = $isBaseNumberFromBaseCode ? $baseCode : self::BASE62CODE;
+        while($offset < $length) {
+            $result += strpos($baseCode, $baseNumber{$length - $offset - 1}) * pow($baseFormat, $offset);
+            ++$offset;
         }
+
+        return $result;
     }
 
 }
